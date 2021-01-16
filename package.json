@@ -5,8 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "build-test": "tsc --project tsconfig.test.json",
+    "build": "tsc --watch",
     "test": "jest --coverage"
   },
   "devDependencies": {
