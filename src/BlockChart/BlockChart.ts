@@ -74,6 +74,7 @@ class Block {
 
   public data: Data
   public lastData?: Data
+  public themeAttrs: ThemeAttrs = baseTheme
   private inactiveOut = 0
 
   // 컬러 변경 이펙트
@@ -179,7 +180,7 @@ class Block {
       ctx.font = `${fontSizeBase}px Roboto`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillStyle = '#FFFFFF'
+      ctx.fillStyle = this.themeAttrs.bg_font_color
 
       const value = this.parent.valueFormat ? this.parent.valueFormat(this.data.value) : this.data.value
       const label = this.data.label || ''
@@ -275,6 +276,14 @@ class BlockChart {
     if (this.hovering) this.ctx.globalAlpha = 1
 
     ctx.restore()
+  }
+
+  public setTheme = (theme: ThemeAttrs) => {
+    this.themeAttrs = theme
+    this.dataIds.forEach((id) => {
+      const block = this.blocks[id]
+      block.themeAttrs = theme
+    })
   }
 
   // clear 는 데이터 비워진 부분을 지울지 여부 기본으로 데이터 비워진 부분은 지우지 않고 빈칸으로 남겨둔다
