@@ -1,71 +1,8 @@
 import { setCanvasDPI, inMouseOnRect, hex2rgba } from '../chartUtils'
 import Tooltip, * as TD from '../chartTooltip'
 import baseTheme, { ThemeAttrs } from '../theme'
+import { INACTIVE_OUT, ColorMeta, Data, Datas, Status } from '.'
 
-const INACTIVE_OUT = 3
-
-/**
- * inactive => 죽은 상태, 회색
- * unknown => 알 수 없음, 빈칸
- * error => 빨강
- * warning => 주황
- * normal => 파랑 (기본)
- * undefined is normal 무소식 is 희소식
- */
-
-export type Status = 'inactive' | 'unknown' | 'error' | 'warning' | 'normal' | undefined
-
-export interface ColorMeta {
-  inactive?: string
-  error?: string
-  warning?: string
-  normal?: string
-  unknown?: string
-}
-
-interface Data {
-  value: number
-  label: string
-  id: string
-  [key: string]: any
-}
-
-type Datas = Array<Data>
-
-const getTooltip = (block: Block, format?: Function) => {
-  const { data, lastData, status } = block
-  const dom = document.createElement('div')
-
-  const drawBody = (data: Data) => {
-    if (format) {
-      const formatData = format(data)
-      if (typeof formatData === 'object') {
-        dom.appendChild(formatData)
-      } else {
-        const div = document.createElement('div')
-        div.innerHTML = format(data)
-        dom.appendChild(div)
-      }
-    } else {
-      dom.appendChild(TD.getStrongText(`${data.value}`))
-    }
-  }
-
-  if (lastData) {
-    dom.appendChild(TD.getTitleText(lastData.label))
-    if (status !== 'unknown') {
-      drawBody(lastData)
-    }
-  } else {
-    dom.appendChild(TD.getTitleText(data.label))
-    drawBody(data)
-  }
-  return dom
-}
-
-/**
- * 육각형 객체 하나
- */
 class Block {
   private parent: BlockChart
   private value: any
@@ -85,9 +22,16 @@ class Block {
     this.resizeBlock(x, y, w, h)
     this.data = data
     this.value = data.value
+    this.setStatus()
+  }
 
-    if (parent.thresholds) {
-      this.status = parent.thresholds(data.value, data) || 'normal'
+  public setStatus = () => {
+    if (this.parent.thresholds) {
+      const prevStatus = this.status
+      this.status = this.parent.thresholds(this.data.value, this.data) || 'normal'
+      if (prevStatus !== this.status) {
+        this.render()
+      }
     }
   }
 
@@ -180,7 +124,8 @@ class Block {
       ctx.font = `${fontSizeBase}px Roboto`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillStyle = this.themeAttrs.bg_font_color
+      ctx.globalCompositeOperation = 'difference'
+      ctx.fillStyle = getStatusColor(this.status) //this.themeAttrs.bg_font_color
 
       const value = this.parent.valueFormat ? this.parent.valueFormat(this.data.value) : this.data.value
       const label = this.data.label || ''
@@ -216,6 +161,7 @@ interface Option {
   fixedMaxValue?: number
   mouseHoverCallback?: Function
 }
+
 class BlockChart {
   private canvas: HTMLCanvasElement
   // @ts-ignore
@@ -285,6 +231,44 @@ class BlockChart {
       block.themeAttrs = theme
     })
   }
+  public setThresholds = (thresholds: any) => {
+    this.thresholds = thresholds
+    this.dataIds.forEach((id) => {
+      const block = this.blocks[id]
+      block.setStatus()
+    })
+  }
+
+  public getTooltip = (block: Block, format?: Function) => {
+    const { data, lastData, status } = block
+    const dom = document.createElement('div')
+
+    const drawBody = (data: Data) => {
+      if (format) {
+        const formatData = format(data)
+        if (typeof formatData === 'object') {
+          dom.appendChild(formatData)
+        } else {
+          const div = document.createElement('div')
+          div.innerHTML = format(data)
+          dom.appendChild(div)
+        }
+      } else {
+        dom.appendChild(TD.getStrongText(`${data.value}`))
+      }
+    }
+
+    if (lastData) {
+      dom.appendChild(TD.getTitleText(lastData.label))
+      if (status !== 'unknown') {
+        drawBody(lastData)
+      }
+    } else {
+      dom.appendChild(TD.getTitleText(data.label))
+      drawBody(data)
+    }
+    return dom
+  }
 
   // clear 는 데이터 비워진 부분을 지울지 여부 기본으로 데이터 비워진 부분은 지우지 않고 빈칸으로 남겨둔다
   public loadData = (datas: Datas, clear: boolean = false) => {
@@ -316,7 +300,7 @@ class BlockChart {
     this.draw()
 
     if (this.tooltip.tooltipStat && this.hovering) {
-      this.tooltip.changeText(getTooltip(this.hovering, this.format))
+      this.tooltip.changeText(this.getTooltip(this.hovering, this.format))
     }
   }
 
@@ -463,7 +447,7 @@ class BlockChart {
 
     if (this.hovering !== nexthovering) {
       if (nexthovering) {
-        this.tooltip.changeText(getTooltip(nexthovering, this.format))
+        this.tooltip.changeText(this.getTooltip(nexthovering, this.format))
         this.tooltip.follow(e)
         if (!tooltip.tooltipStat) this.tooltip.tooltipOn()
       } else if (tooltip.tooltipStat) {
