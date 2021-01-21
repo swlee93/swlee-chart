@@ -1,5 +1,5 @@
 import BlockChart from './BlockChart'
 import GroupLayout from './GroupLayout'
-import Treemap from './Treemap'
+import Cluster from './Cluster'
 import Rect from './Node/Rect'
-export { BlockChart, GroupLayout, Treemap, Rect }
+export { BlockChart, GroupLayout, Cluster, Rect }
