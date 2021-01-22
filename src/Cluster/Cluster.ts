@@ -1,20 +1,6 @@
-import { uid, DEFAULT_DATUM } from './ClusterMeta'
+import { uid, DEFAULT_DATUM, flattenClusterData } from './ClusterMeta'
 import Treemap from './Treemap'
-
-const getRandomNumber = (y = 2) => Math.floor(Math.random() * Math.pow(10, y))
-const getRandomGroup = (prefix = 'group', y = 2) => prefix + Math.floor(Math.random() * Math.pow(10, y)).toString()
-const GROUPS = getRandomGroup('A', 2)
-const GROUPS1 = getRandomGroup('a', 3)
-
-const MOCK_DATA = Array(getRandomNumber())
-  .fill((random: number) => ({
-    value: random,
-    name: `${random} in ${GROUPS[random % GROUPS.length]}_${GROUPS1[random % GROUPS1.length]}`,
-    group: GROUPS[random % GROUPS.length],
-    group1: GROUPS1[random % GROUPS1.length],
-  }))
-  .map((trig) => trig(getRandomNumber()))
-console.log('MOCK_DATA', MOCK_DATA)
+import Treemap2 from './Treemap2'
 
 interface DynamicGroup {
   [groupNumber: string]: number | string
@@ -25,7 +11,10 @@ interface StaticDatum {
 }
 
 interface TreemapDatum {
-  rect?: Rect
+  x0?: number
+  x1?: number
+  y0?: number
+  y1?: number
 }
 
 type ClusterDatum = StaticDatum & DynamicGroup & TreemapDatum
@@ -41,7 +30,7 @@ interface ClusterProps {
   group?: string | number
   index?: number
 }
-type Rect = [x: number, y: number, w: number, h: number]
+
 class Cluster {
   private parentId: string | null
   private id: string | null
@@ -99,29 +88,15 @@ class Cluster {
     this.datum = thisDatum
   }
 
-  public flattenClusterData = (data: any[]) => {
-    Object.entries(this.cluster).forEach(([groupValue, groupData]) => {
-      if (groupData.cluster.isLeaf) {
-        data.push(groupData.datasource.map((datum) => datum))
-      } else {
-        let childData: Array<number | number[]> = []
-        groupData.cluster.flattenClusterData(childData)
-        data.push(childData)
-      }
-    })
-    return data
-  }
-
   public calculate = ({ x = 0, y = 0, w, h }: { x: number; y: number; w: number; h: number }) => {
-    let flattenData: any[] = []
-    this.flattenClusterData(flattenData)
-    this.node = Treemap.generate(flattenData, w, h, x, y)
-    console.log('flattenData', flattenData)
-    console.log('this.node', this.node)
+    let bucket: any[] = []
+    flattenClusterData(bucket, this.cluster)
+    this.node = Treemap2(bucket, { x0: x, y0: y, x1: x + w, y1: y + h })
+    this.print()
   }
   public draw = (render: (datum: ClusterDatum) => any) => {
-    this.node.forEach((datum) => {
-      render(datum)
+    return this.node.map((datum) => {
+      return render(datum)
     })
   }
 
@@ -130,11 +105,4 @@ class Cluster {
   }
 }
 
-const c = new Cluster()
-c.setData(MOCK_DATA)
-c.calculate({ x: 0, y: 0, w: 100, h: 100 })
-c.draw((datum) => {
-  console.log('render', datum)
-})
-// c.print()
 export default Cluster

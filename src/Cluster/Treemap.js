@@ -123,10 +123,13 @@ var Treemap = {
     function mapData(rects) {
       return Object.entries(dataMap).map(([datumKey, datum]) => {
         const rect = datumKey.split('-').reduce((acc, idx) => {
-          acc = acc[idx]
+          if (acc[idx]) {
+            acc = acc[idx]
+          }
           return acc
         }, rects)
-        return { ...datum, rect }
+
+        return { ...datum, rect, id: datumKey }
       })
     }
 
@@ -166,6 +169,7 @@ var Treemap = {
 
     // treemapSingledimensional - simple wrapper around squarify
     function treemapSingledimensional(data, width, height, xoffset, yoffset) {
+      console.log('treemapSingledimensional:  width, height, xoffset, yoffset', width, height, xoffset, yoffset)
       xoffset = typeof xoffset === 'undefined' ? 0 : xoffset
       yoffset = typeof yoffset === 'undefined' ? 0 : yoffset
 
@@ -272,12 +276,16 @@ var Treemap = {
       } else {
         total = sumArray(arr)
       }
+
       return total
     }
 
     return (data, ...rest) => {
       let datasource = []
-      parseValue(data, datasource)
+      data.forEach((datum) => {
+        parseValue(datum, datasource)
+      })
+      console.log('parseValue', JSON.stringify(data, null, 2), JSON.stringify(datasource))
       return mapData(treemapMultidimensional(datasource, ...rest))
     }
   })()
