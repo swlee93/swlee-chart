@@ -24,7 +24,11 @@ interface StaticDatum {
   name: string | number
 }
 
-type ClusterDatum = StaticDatum & DynamicGroup
+interface TreemapDatum {
+  rect?: Rect
+}
+
+type ClusterDatum = StaticDatum & DynamicGroup & TreemapDatum
 type ClusterData = ClusterDatum[]
 
 type ClusterManagedDatasource = {
@@ -49,7 +53,7 @@ class Cluster {
   public datum: ClusterDatum | null = null
   public cluster: ClusterManagedDatasource = {}
   public values: (number | number[])[] = []
-  public node: (Rect | Rect[])[] = []
+  public node: ClusterData = []
   constructor(props: ClusterProps = {}) {
     const { depth = 0, parentId = null, group = 'root', index = 0 } = props
     this.id = uid(depth)
@@ -115,18 +119,9 @@ class Cluster {
     console.log('flattenData', flattenData)
     console.log('this.node', this.node)
   }
-  public draw = (render: (rect: any, datum: ClusterDatum) => any) => {
-    const callbackRender = (node: Rect | Rect[]) => {
-      if (Array.isArray(node)) {
-        if (typeof node[0] === 'number') {
-          render(node, { name: 'test', value: 0 })
-        } else {
-          node.forEach((child: any) => callbackRender(child))
-        }
-      }
-    }
-    this.node.forEach((rect) => {
-      callbackRender(rect)
+  public draw = (render: (datum: ClusterDatum) => any) => {
+    this.node.forEach((datum) => {
+      render(datum)
     })
   }
 
@@ -138,8 +133,8 @@ class Cluster {
 const c = new Cluster()
 c.setData(MOCK_DATA)
 c.calculate({ x: 0, y: 0, w: 100, h: 100 })
-c.draw(([x, y, w, h], datum) => {
-  console.log('render', [x, y, w, h], datum)
+c.draw((datum) => {
+  console.log('render', datum)
 })
 // c.print()
 export default Cluster

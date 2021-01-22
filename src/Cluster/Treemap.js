@@ -103,10 +103,34 @@ var Treemap = {
       return normalizeddata
     }
 
-    // treemapMultidimensional - takes multidimensional data (aka [[23,11],[11,32]] - nested array)
-    //                           and recursively calls itself using treemapSingledimensional
-    //                           to create a patchwork of treemaps and merge them
-    function treemapMultidimensional(data = [], width, height, xoffset, yoffset) {
+    var dataMap = []
+
+    function parseValue(data, target, indexes = '0') {
+      if (Array.isArray(data)) {
+        let children = []
+        target.push(children)
+        data.forEach((datum, idx) => {
+          const treeId = indexes ? `${indexes}-${idx}` : idx
+          parseValue(datum, children, treeId)
+        })
+      } else if (typeof data?.value === 'number') {
+        const datumKey = indexes
+        dataMap[datumKey] = data
+        target.push(data.value)
+      }
+    }
+
+    function mapData(rects) {
+      return Object.entries(dataMap).map(([datumKey, datum]) => {
+        const rect = datumKey.split('-').reduce((acc, idx) => {
+          acc = acc[idx]
+          return acc
+        }, rects)
+        return { ...datum, rect }
+      })
+    }
+
+    function treemapMultidimensional(datasource, width, height, xoffset, yoffset) {
       xoffset = typeof xoffset === 'undefined' ? 0 : xoffset
       yoffset = typeof yoffset === 'undefined' ? 0 : yoffset
 
@@ -115,17 +139,17 @@ var Treemap = {
       var results = []
       var i
 
-      if (isArray(data[0])) {
+      if (isArray(datasource[0])) {
         // if we've got more dimensions of depth
-        for (i = 0; i < data.length; i++) {
-          mergeddata[i] = sumMultidimensionalArray(data[i])
+        for (i = 0; i < datasource.length; i++) {
+          mergeddata[i] = sumMultidimensionalArray(datasource[i])
         }
         mergedtreemap = treemapSingledimensional(mergeddata, width, height, xoffset, yoffset)
 
-        for (i = 0; i < data.length; i++) {
+        for (i = 0; i < datasource.length; i++) {
           results.push(
             treemapMultidimensional(
-              data[i],
+              datasource[i],
               mergedtreemap[i][2] - mergedtreemap[i][0],
               mergedtreemap[i][3] - mergedtreemap[i][1],
               mergedtreemap[i][0],
@@ -134,8 +158,9 @@ var Treemap = {
           )
         }
       } else {
-        results = treemapSingledimensional(data, width, height, xoffset, yoffset)
+        results = treemapSingledimensional(datasource, width, height, xoffset, yoffset)
       }
+
       return results
     }
 
@@ -250,7 +275,11 @@ var Treemap = {
       return total
     }
 
-    return treemapMultidimensional
+    return (data, ...rest) => {
+      let datasource = []
+      parseValue(data, datasource)
+      return mapData(treemapMultidimensional(datasource, ...rest))
+    }
   })()
 })()
 
