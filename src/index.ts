@@ -1,5 +1,5 @@
 import BlockChart from './BlockChart'
-import GroupLayout from './GroupLayout'
-import Cluster, { getClusterMockData } from './Cluster'
+import Cluster from './Cluster'
 import Rect from './Node/Rect'
-export { BlockChart, GroupLayout, Cluster, Rect, getClusterMockData }
+import Treemap from './Treemap'
+export { BlockChart, Cluster, Rect, Treemap }

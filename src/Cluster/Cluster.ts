@@ -1,6 +1,5 @@
 import { uid, DEFAULT_DATUM, flattenClusterData } from './ClusterMeta'
-import Treemap from './Treemap'
-import Treemap2 from './Treemap2'
+import Treemap from '../Treemap'
 
 interface DynamicGroup {
   [groupNumber: string]: number | string
@@ -95,7 +94,7 @@ class Cluster {
     const { x = 0, y = 0, w, h } = rect
     let bucket: any[] = []
     flattenClusterData(bucket, this.cluster)
-    this.node = Treemap2(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, calculateOption)
+    this.node = Treemap(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, calculateOption)
     console.log('bucket', bucket, calculateOption)
     console.log('this.node', this.node)
     this.print()
