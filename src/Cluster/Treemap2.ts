@@ -11,6 +11,7 @@ export type Input<Custom> = {
 export default function <Custom>(
   data: Array<Input<Custom>>,
   container: { x0: number; y0: number; x1: number; y1: number },
+  option?: { depth?: number },
 ): Array<ILayoutRect<Custom>> {
   const x0 = container.x0
   const y0 = container.y0
@@ -24,7 +25,7 @@ export default function <Custom>(
     y1,
     children: data,
   } as ILayoutRect<Custom>
-  return recurse(input)
+  return recurse(input, option, 0)
 }
 
 export type INormalizedDatum<Custom> = IDatum<Custom> & {
@@ -293,8 +294,13 @@ const flatten = <T>(listOfLists: T[][]): T[] => {
 
 const getArea = (rect: IRect) => (rect.x1 - rect.x0) * (rect.y1 - rect.y0)
 
-export const recurse = <Custom>(datum: ILayoutRect<Custom>): Array<ILayoutRect<Custom>> => {
-  if (datum.children === undefined) {
+export const recurse = <Custom>(
+  datum: ILayoutRect<Custom>,
+  option: { depth?: number } = {},
+  depthCount: number = 0,
+): Array<ILayoutRect<Custom>> => {
+  const stop = option.depth === depthCount
+  if (datum.children === undefined || stop) {
     const result = [datum]
     return result
   } else {
@@ -304,7 +310,7 @@ export const recurse = <Custom>(datum: ILayoutRect<Custom>): Array<ILayoutRect<C
     const squarifiedLength = squarified.length
     const contained: Array<Array<ILayoutRect<Custom>>> = []
     for (let i = 0; i < squarifiedLength; i += 1) {
-      contained.push(recurse(squarified[i]))
+      contained.push(recurse(squarified[i], option, depthCount + 1))
     }
 
     const flattened: Array<ILayoutRect<Custom>> = flatten<ILayoutRect<Custom>>(contained)

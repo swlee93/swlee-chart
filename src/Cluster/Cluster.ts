@@ -23,7 +23,10 @@ type ClusterData = ClusterDatum[]
 type ClusterManagedDatasource = {
   [groupValue: string]: { cluster: Cluster; datasource: ClusterData }
 }
-
+interface DrawOption {}
+interface CalculateOption {
+  depth?: number
+}
 interface ClusterProps {
   depth?: number
   parentId?: string | null
@@ -88,13 +91,16 @@ class Cluster {
     this.datum = thisDatum
   }
 
-  public calculate = ({ x = 0, y = 0, w, h }: { x: number; y: number; w: number; h: number }) => {
+  public calculate = (rect: { x: number; y: number; w: number; h: number }, calculateOption: CalculateOption = {}) => {
+    const { x = 0, y = 0, w, h } = rect
     let bucket: any[] = []
     flattenClusterData(bucket, this.cluster)
-    this.node = Treemap2(bucket, { x0: x, y0: y, x1: x + w, y1: y + h })
+    this.node = Treemap2(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, calculateOption)
+    console.log('bucket', bucket, calculateOption)
+    console.log('this.node', this.node)
     this.print()
   }
-  public draw = (render: (datum: ClusterDatum) => any) => {
+  public draw = (render: (datum: ClusterDatum) => any, drawOption: DrawOption = {}) => {
     return this.node.map((datum) => {
       return render(datum)
     })
