@@ -1,6 +1,6 @@
 export type IDatum<Custom> = {
-  value: number
   children?: Array<IDatum<Custom>>
+  value: number
 } & Custom
 
 export type Input<Custom> = {
@@ -11,7 +11,7 @@ export type Input<Custom> = {
 export default function <Custom>(
   data: Array<Input<Custom>>,
   container: { x0: number; y0: number; x1: number; y1: number },
-  option?: { depth?: number },
+  option?: { depth?: number; valueKey?: keyof IDatum<Custom> },
 ): Array<ILayoutRect<Custom>> {
   const x0 = container.x0
   const y0 = container.y0
@@ -83,21 +83,26 @@ export const doesAddingToRowImproveAspectRatio = <Custom>(
 }
 
 // Ensure that the sum of elements in `data` is equal to `area` (as per original algorithm):
-export const normalizeData = <Custom>(data: Array<IDatum<Custom>>, area: number): Array<INormalizedDatum<Custom>> => {
+export const normalizeData = <Custom>(
+  data: Array<IDatum<Custom>>,
+  area: number,
+  valueKey: keyof IDatum<Custom> = 'value',
+): Array<INormalizedDatum<Custom>> => {
   const dataLength = data.length
   let dataSum = 0
   for (let i = 0; i < dataLength; i += 1) {
-    dataSum += data[i].value
+    dataSum += Number(data[i][valueKey]) || 0
   }
 
   const multiplier = area / dataSum
   // TODO: use spread/rest type instead of `Object.assign` when bug with rest/spread has been fixed.
   const result: Array<INormalizedDatum<Custom>> = []
-  let elementResult: INormalizedDatum<Custom>, datum: IDatum<Custom>
+  let elementResult: INormalizedDatum<Custom>, datum: IDatum<Custom>, value: number
   for (let j = 0; j < dataLength; j += 1) {
     datum = data[j]
+    value = Number(datum[valueKey])
     elementResult = Object.assign({}, datum, {
-      normalizedValue: datum.value * multiplier,
+      normalizedValue: value * multiplier,
     })
     result.push(elementResult)
   }
@@ -296,7 +301,7 @@ const getArea = (rect: IRect) => (rect.x1 - rect.x0) * (rect.y1 - rect.y0)
 
 export const recurse = <Custom>(
   datum: ILayoutRect<Custom>,
-  option: { depth?: number } = {},
+  option: { depth?: number; valueKey?: keyof IDatum<Custom> } = {},
   depthCount: number = 0,
 ): Array<ILayoutRect<Custom>> => {
   const stop = option.depth === depthCount
@@ -304,7 +309,11 @@ export const recurse = <Custom>(
     const result = [datum]
     return result
   } else {
-    const normalizedChildren: Array<INormalizedDatum<Custom>> = normalizeData<Custom>(datum.children, getArea(datum))
+    const normalizedChildren: Array<INormalizedDatum<Custom>> = normalizeData<Custom>(
+      datum.children,
+      getArea(datum),
+      option?.valueKey,
+    )
     const squarified: Array<ILayoutRect<Custom>> = squarify(normalizedChildren, [], datum, [])
 
     const squarifiedLength = squarified.length

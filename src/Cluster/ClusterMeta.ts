@@ -2,10 +2,12 @@ export const uid = (prefix: string | number = 'root') => {
   return `${prefix}_${Math.random().toString(16).split('.')[1]}`
 }
 
-export const DEFAULT_DATUM = {
-  name: 'default',
-  value: 0,
-  group: 'none',
+export const getDefaultDatum = (option: any) => {
+  return {
+    [option?.nameKey || 'name']: 'default',
+    [option?.valueKey || 'value']: 0,
+    [option?.groupKey || 'group']: 'none',
+  }
 }
 
 export const flattenClusterData = (bucket: any[], clusterDatasource: any) => {

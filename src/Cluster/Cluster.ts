@@ -1,87 +1,135 @@
-import { uid, DEFAULT_DATUM, flattenClusterData } from './ClusterMeta'
+import { uid, flattenClusterData, getDefaultDatum } from './ClusterMeta'
 import Treemap from '../Treemap'
 
-interface DynamicGroup {
-  [groupNumber: string]: number | string
+interface Value {
+  [key: string]: number | string
 }
-interface StaticDatum {
-  value: number
-  name: string | number
-}
-
-interface TreemapDatum {
+interface Layout {
   x0?: number
   x1?: number
   y0?: number
   y1?: number
 }
 
-type ClusterDatum = StaticDatum & DynamicGroup & TreemapDatum
+type ClusterDatum = Value & Layout
 type ClusterData = ClusterDatum[]
 
 type ClusterManagedDatasource = {
   [groupValue: string]: { cluster: Cluster; datasource: ClusterData }
 }
-interface DrawOption {}
+
 interface CalculateOption {
   depth?: number
 }
-interface ClusterProps {
-  depth?: number
-  parentId?: string | null
-  group?: string | number
-  index?: number
+interface DrawOption {}
+
+type DataKey = {
+  nameKey: string
+  valueKey: string
+  groupKey: string
+  group1Key: string
+  group2Key: string
 }
 
+interface TreemapProps {
+  depth: number
+  parentId: string | null
+  group: string | number
+  index: number
+}
+
+type ClusterProps = Partial<TreemapProps> & Partial<DataKey>
 class Cluster {
   private parentId: string | null
   private id: string | null
   private depth: number = 0
   private index: number = 0
   private group: string | number = 'root'
+  private nameKey: string = 'name'
+  private valueKey: string = 'value'
+  private groupKey: string = 'group'
+  private group1Key: string = 'group1'
+  private group2Key: string = 'group2'
 
   public isLeaf: boolean = false
   public datum: ClusterDatum | null = null
   public cluster: ClusterManagedDatasource = {}
-  public values: (number | number[])[] = []
-  public node: ClusterData = []
-  constructor(props: ClusterProps = {}) {
-    const { depth = 0, parentId = null, group = 'root', index = 0 } = props
+  public nodes: ClusterData = []
+
+  constructor(props?: ClusterProps) {
+    const {
+      depth = 0,
+      parentId = null,
+      group = 'root',
+      index = 0,
+      nameKey = 'name',
+      valueKey = 'value',
+      groupKey = 'group',
+      group1Key = 'group1',
+      group2Key = 'group2',
+    } = props || {}
+
     this.id = uid(depth)
     this.parentId = parentId
     this.depth = depth
     this.group = group
     this.index = index
+    this.nameKey = nameKey
+    this.valueKey = valueKey
+    this.groupKey = groupKey
+    this.group1Key = group1Key
+    this.group2Key = group2Key
+  }
+
+  private getDataKey = (): DataKey & { [key: string]: string } => {
+    return {
+      nameKey: this.nameKey,
+      valueKey: this.valueKey,
+      groupKey: this.groupKey,
+      group1Key: this.group1Key,
+      group2Key: this.group2Key,
+    }
   }
 
   public setData = (datasource: ClusterData = []) => {
-    let thisDatum: ClusterDatum = { name: this.group, value: 0 }
-    let datumGroupValueKey: keyof Partial<ClusterDatum> = `group${this.depth || ''}`
+    const dataKey = this.getDataKey()
+    const groupDepth = `group${this.depth || ''}`
+    const groupDataKey = `${groupDepth}Key`
+    const datumGroupValueKey = dataKey[groupDataKey] || groupDepth
 
-    const managedDatasource = datasource.reduce<ClusterManagedDatasource>((acc, datum = DEFAULT_DATUM, index) => {
-      // acc this.datum
-      thisDatum.value += datum.value
+    let thisDatum: ClusterDatum = {
+      [dataKey.nameKey]: this.group,
+      [dataKey.valueKey]: 0,
+    }
 
-      // group value
-      const groupValue = datum[datumGroupValueKey]
+    const managedDatasource = datasource.reduce<ClusterManagedDatasource>(
+      (acc, datum = getDefaultDatum(dataKey), index) => {
+        // acc this.datum
+        thisDatum[dataKey.valueKey] =
+          (Number(datum[dataKey.valueKey]) || 0) + (Number(thisDatum[dataKey.valueKey]) || 0)
 
-      // break
-      if (!groupValue) {
-        this.isLeaf = true
-        return acc
-      }
+        // group value
+        const groupValue = datum[datumGroupValueKey]
 
-      // push
-      if (!acc[groupValue]) {
-        acc[groupValue] = {
-          // new child cluster
-          cluster: new Cluster({ depth: this.depth + 1, parentId: this.id, group: groupValue, index }),
-          datasource: [],
+        // break
+        if (!groupValue) {
+          this.isLeaf = true
+          return acc
         }
-      }
-      acc[groupValue].datasource.push(datum)
-      return acc
-    }, {})
+
+        // push
+        if (!acc[groupValue]) {
+          acc[groupValue] = {
+            // new child cluster
+            cluster: new Cluster({ depth: this.depth + 1, parentId: this.id, group: groupValue, index, ...dataKey }),
+            datasource: [],
+          }
+        }
+        acc[groupValue].datasource.push(datum)
+        return acc
+      },
+      {},
+    )
 
     Object.values(managedDatasource).forEach((groupData) => {
       groupData.cluster.setData(groupData.datasource)
@@ -94,13 +142,12 @@ class Cluster {
     const { x = 0, y = 0, w, h } = rect
     let bucket: any[] = []
     flattenClusterData(bucket, this.cluster)
-    this.node = Treemap(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, calculateOption)
-    console.log('bucket', bucket, calculateOption)
-    console.log('this.node', this.node)
+    this.nodes = Treemap(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, { ...calculateOption, ...this.getDataKey() })
     this.print()
   }
+
   public draw = (render: (datum: ClusterDatum) => any, drawOption: DrawOption = {}) => {
-    return this.node.map((datum) => {
+    return this.nodes.map((datum) => {
       return render(datum)
     })
   }
