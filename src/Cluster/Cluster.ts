@@ -142,7 +142,7 @@ class Cluster {
       this.cluster = {
         [this.group]: {
           cluster: this,
-          datasource,
+          datasource: datasource?.filter((datum) => !!datum[dataKey.valueKey]),
         },
       }
     }
