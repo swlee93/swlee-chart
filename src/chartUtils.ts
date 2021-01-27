@@ -37,10 +37,11 @@ export const inMouse = (positions: Array<Array<number>>, evt: MouseEvent) => {
   return cross % 2 > 0
 }
 
-export const inMouseOnRect = (rect: [number, number, number, number] = [0, 0, 0, 0], evt: MouseEvent) => {
+export const inMouseOnRect = (rect: [number, number, number, number] = [0, 0, 0, 0], evt: any) => {
   const [x, y, w, h] = rect
-
-  return x < evt.offsetX && x + w >= evt.offsetX && y < evt.offsetY && y + h >= evt.offsetY
+  const isIn = x < evt.offsetX && x + w >= evt.offsetX && y < evt.offsetY && y + h >= evt.offsetY
+  console.log('inMouseOnRect', isIn, evt.offsetX, evt.offsetY, [x, y, w, h])
+  return isIn
 }
 
 export const hex2rgba = (hex = '', alpha = 1) => {

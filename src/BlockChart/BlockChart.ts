@@ -1,5 +1,5 @@
 import { setCanvasDPI, inMouseOnRect, hex2rgba } from '../chartUtils'
-import Tooltip, * as TD from '../chartTooltip'
+import TooltipElement, * as TD from '../chartTooltip'
 import baseTheme, { ThemeAttrs } from '../theme'
 import { ColorMeta, Data, Datas, Status } from '.'
 import Block from './Block'
@@ -40,7 +40,7 @@ class BlockChart {
   public valueVisible?: boolean
   public valueFormat?: Function
   public onClick?: Function
-  private tooltip: Tooltip
+  private tooltip: TooltipElement
   public format?: Function
   private mouseHoverCallback?: Function = undefined
 
@@ -50,7 +50,7 @@ class BlockChart {
     canvas.addEventListener('click', this.mouseClickEvent)
     canvas.addEventListener('mousemove', this.mouseHoverEvent)
     canvas.addEventListener('mouseleave', this.mouseLeaveEvent)
-    this.tooltip = new Tooltip()
+    this.tooltip = new TooltipElement()
     this.fixedMaxValue = option?.fixedMaxValue || 0
     this.mouseHoverCallback = option?.mouseHoverCallback
   }
