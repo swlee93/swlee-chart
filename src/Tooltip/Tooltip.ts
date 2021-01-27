@@ -7,8 +7,11 @@ class Tooltip {
   public tooltip: any
 
   public getTooltip: (datum: any) => HTMLElement | null = (datum) => null
+
   private nodes: any[] = []
+
   private tootipTemplateNode: HTMLElement = document.createElement('div')
+  
   constructor(renderer: (datum: any) => string) {
     this.tooltip = new TooltipElement()
     this.getTooltip = (datum: any) => {

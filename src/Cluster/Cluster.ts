@@ -51,7 +51,7 @@ class Cluster {
   private group1Key: string = 'group1'
   private group2Key: string = 'group2'
 
-  public isLeaf: boolean = false
+  public isLeaf: boolean = true
   public datum: ClusterDatum | null = null
   public cluster: ClusterManagedDatasource = {}
   public nodes: ClusterData = []
@@ -110,11 +110,12 @@ class Cluster {
 
         // group value
         const groupValue = datum[datumGroupValueKey]
-
         // break
         if (!groupValue) {
           this.isLeaf = true
           return acc
+        } else {
+          this.isLeaf = false
         }
 
         // push
@@ -130,11 +131,22 @@ class Cluster {
       },
       {},
     )
+    const managedDatasourceValues = Object.values(managedDatasource)
+    if (managedDatasourceValues?.length) {
+      managedDatasourceValues.forEach((groupData) => {
+        groupData.cluster.setData(groupData.datasource)
+      })
+      this.cluster = managedDatasource
+    } else {
+      // 클러스터링할 그룹이 없는경우 자기 자신을 참조함
+      this.cluster = {
+        [this.group]: {
+          cluster: this,
+          datasource,
+        },
+      }
+    }
 
-    Object.values(managedDatasource).forEach((groupData) => {
-      groupData.cluster.setData(groupData.datasource)
-    })
-    this.cluster = managedDatasource
     this.datum = thisDatum
   }
 
@@ -142,6 +154,7 @@ class Cluster {
     const { x = 0, y = 0, w, h } = rect
     let bucket: any[] = []
     flattenClusterData(bucket, this.cluster)
+    console.log('bucket', this.cluster, bucket)
     this.nodes = Treemap(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, { ...calculateOption, ...this.getDataKey() })
     this.print()
   }
