@@ -1,5 +1,6 @@
 import { uid, flattenClusterData, getDefaultDatum } from './ClusterMeta'
 import Treemap from '../Treemap'
+import Indent from '../Indent'
 
 interface Value {
   [key: string]: number | string
@@ -14,12 +15,17 @@ interface Layout {
 type ClusterDatum = Value & Layout
 type ClusterData = ClusterDatum[]
 
-type ClusterManagedDatasource = {
+export type ClusterManagedDatasource = {
   [groupValue: string]: { cluster: Cluster; datasource: ClusterData }
+}
+export enum LayoutType {
+  'TREE',
+  'INDENT',
 }
 
 interface CalculateOption {
   depth?: number
+  layout?: LayoutType
 }
 interface DrawOption {}
 
@@ -100,6 +106,7 @@ class Cluster {
     let thisDatum: ClusterDatum = {
       [dataKey.nameKey]: this.group,
       [dataKey.valueKey]: 0,
+      length: datasource.length
     }
 
     const managedDatasource = datasource.reduce<ClusterManagedDatasource>(
@@ -107,7 +114,7 @@ class Cluster {
         // acc this.datum
         thisDatum[dataKey.valueKey] =
           (Number(datum[dataKey.valueKey]) || 0) + (Number(thisDatum[dataKey.valueKey]) || 0)
-
+        
         // group value
         const groupValue = datum[datumGroupValueKey]
         // break
@@ -150,12 +157,29 @@ class Cluster {
     this.datum = thisDatum
   }
 
-  public calculate = (rect: { x: number; y: number; w: number; h: number }, calculateOption: CalculateOption = {}) => {
+  public calculate = (
+    rect: { x: number; y: number; w: number; h: number },
+    calculateOption: CalculateOption = { layout: LayoutType.TREE },
+  ) => {
     const { x = 0, y = 0, w, h } = rect
     let bucket: any[] = []
     flattenClusterData(bucket, this.cluster)
-    console.log('bucket', this.cluster, bucket)
-    this.nodes = Treemap(bucket, { x0: x, y0: y, x1: x + w, y1: y + h }, { ...calculateOption, ...this.getDataKey() })
+    switch (calculateOption?.layout) {
+      case LayoutType.INDENT:
+        this.nodes = Indent(
+          bucket,
+          { x0: x, y0: y, x1: x + w, y1: y + h },
+          { ...calculateOption, ...this.getDataKey() },
+        )
+        break
+      case LayoutType.TREE:
+      default:
+        this.nodes = Treemap(
+          bucket,
+          { x0: x, y0: y, x1: x + w, y1: y + h },
+          { ...calculateOption, ...this.getDataKey() },
+        )
+    }
     this.print()
   }
 

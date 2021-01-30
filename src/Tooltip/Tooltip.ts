@@ -1,5 +1,5 @@
-import { setCanvasDPI, inMouseOnRect, hex2rgba } from '../chartUtils'
-import TooltipElement, * as TD from '../chartTooltip'
+import { isMouseOnRect } from '../utils'
+import TooltipElement, * as TD from './TooltipElement'
 
 class Tooltip {
   public target: HTMLElement | HTMLCanvasElement | null = null
@@ -11,7 +11,7 @@ class Tooltip {
   private nodes: any[] = []
 
   private tootipTemplateNode: HTMLElement = document.createElement('div')
-  
+
   constructor(renderer: (datum: any) => string) {
     this.tooltip = new TooltipElement()
     this.getTooltip = (datum: any) => {
@@ -54,7 +54,6 @@ class Tooltip {
   }
   private mouseHoverEventFunc = (e: Event) => {
     const tooltip = this.tooltip
-    console.log('this.nodes', this.nodes)
     let nexthovering: any = this.nodes.find((node = {}) => {
       const { x0, x1, y0, y1 } = node
       if (
@@ -64,8 +63,8 @@ class Tooltip {
         typeof y1 !== 'undefined'
       ) {
         const rect: [number, number, number, number] = [x0, y0, x1 - x0, y1 - y0]
-        console.log('rect', rect)
-        return inMouseOnRect(rect, e)
+        // console.log('rect', rect)
+        return isMouseOnRect(rect, e)
       } else {
         return false
       }
